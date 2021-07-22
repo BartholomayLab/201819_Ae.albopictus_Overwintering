@@ -1,0 +1,224 @@
+---
+title: "Hobos"
+author: "GMB"
+date: "January 23, 2020"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+## North - South temperarutre
+
+This file was made to explore and analyse the temperature data from Brad Tucker's tires with Aedes spp. eggs. 
+
+```{r}
+### Clean workspace
+rm(list = ls())
+
+### Load libraries
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(knitr)
+
+### Load data
+setwd("~/Documents/CBS PhD/albopictus OW/Data")
+OW <- read.csv("OWALL_030520.csv")
+OWA <- read.csv("OWALL_A030520.csv")
+OWAVG <- read.csv("OWALL_AVG030520.csv")
+
+```
+
+The data is loaded and contains `r nrow(OW)` rows and `r ncol(OW)` columns.
+
+Now we manipulate the data so we can look at it over time. 
+
+```{r, fig.height=9, fig.width=9}
+OW$Date <- as.Date(OW$Date, "%d-%b-%y")
+OW <- subset(OW, Date > "2018-11-18" & Date < "2019-04-10")
+OW$MilTime <- format(strptime(paste(OW$Time, OW$AMPM, sep = " "), "%I:%M %p"),"%H:%M")
+#OW$MilTime > 12:00 & OW$MilTime <12:30 
+#OW$BlockTime <- ifelse(OW$MilTime >0:00 & OW$MilTime < 3:01, "0-3", 
+#                ifelse(OW$MilTime >3:00 & OW$MilTime < 6:01, "4-6",
+#                ifelse(OW$MilTime >6:00 & OW$MilTime < 9:01, "7-9", 
+#                ifelse(OW$MilTime >9:00 & OW$MilTime < 12:01, "10-12", 
+#                ifelse(OW$MilTime >12:00 & OW$MilTime < 15:01, "12-15",
+#                ifelse(OW$MilTime >15:00 & OW$MilTime < 18:01, "16-18",
+#                ifelse(OW$MilTime >18:00 & OW$MilTime < 21:01, "19-21",
+#                ifelse(OW$MilTime >21:00 & OW$MilTime < 23:59, "22-24", #"Stinks"))))))))
+OW$GMTH <- as.POSIXct(paste(OW$Date, format(strptime(paste(OW$Time, OW$AMPM, sep = " "), "%I:%M %p"),"%H"), ":00", sep = ""), tz="GMT")
+OW$GMT <- as.POSIXct(paste(OW$Date, OW$MilTime), tz="GMT")
+kable(table(OW$Location, OW$Date), caption = "Number of observatinos by Site and Date")
+
+OW$ABC <- ifelse(OW$Number == 1 |OW$Number==4 | OW$Number==7 | OW$Number==10 | OW$Number==13, "A", 
+           ifelse(OW$Number == 2 |OW$Number==5 | OW$Number==8 | OW$Number==11 | OW$Number==14, "B", "C") )
+
+g <- ggplot(data = OW, aes(x = GMT, y = Value))
+g + geom_line(aes(linetype = Type, color = Type)) + 
+  geom_hline(yintercept=-12, linetype = 2)+
+  facet_grid(Location~ABC) + theme_classic()+
+  scale_colour_manual(values=c("black","red"))+
+  ggtitle("Continous temperature reads by tire location")
+```
+
+We reduced the data set from `r min(OW$Date)` to `r max(OW$Date)`.
+And renamed number 1 to 15 with ABC
+
+A = 1, 4, 7, 10, 13
+B = 2, 5, 8, 11, 14
+C = 3, 6, 9, 12, 15
+
+Next we want to answer some of the questions:
+
+1. What is the temperature difference between Ambient and Tire each day
+2. How many observation were below -12C?
+3. How many freeze - thaw cycles occur
+4. ....
+
+I can't find my notes from our previous meeting with the exact questions. 
+
+
+```{r}
+### Ambient v. Tire
+ByHour <- summarize(group_by(OW, Location,ABC, GMTH, Type), N = n(), C = mean(Value))
+OWmelt <- dcast(ByHour, Location+ABC + GMTH ~ Type)
+OWmelt <- subset(OWmelt, !is.na(Ambient)) # lose ~50%
+OWmelt <- subset(OWmelt, !is.na(Tire)) # lose another 75%
+OWmelt$Dif <- OWmelt$Ambient - OWmelt$Tire
+
+h <- ggplot(data = OWmelt, aes(x = GMTH, y = Dif))
+h + geom_line(aes()) + 
+  geom_hline(yintercept=0, linetype =2)+
+  facet_grid(Location ~ ABC) + theme_classic()+
+  ggtitle("Difference between ambient and tire temp by hour (negative = tire is warmer)")
+```
+We tried to summarize by hour, this did not work very well. We lost a lot of observations.  Next we tried by day. 
+
+```{r, fig.height=9, fig.width=9}
+ByDay <- summarize(group_by(OW, Location,ABC, Date, Type), N = n(), C = mean(Value), minT = min(Value), maxT = max(Value))
+OWmelt_D <- dcast(ByDay, Location+ABC + Date ~ Type)
+OWmelt_D <- subset(OWmelt_D, !is.na(Ambient)) 
+OWmelt_D <- subset(OWmelt_D, !is.na(Tire)) 
+OWmelt_D$Dif <- OWmelt_D$Ambient - OWmelt_D$Tire
+
+k <- ggplot(data = OWmelt_D, aes(x = Date, y = Dif))
+k + geom_line(aes()) + 
+  geom_hline(yintercept=0)+
+  facet_grid(Location~ABC) + theme_classic()+
+  ggtitle("Difference between ambient and tire by day (negative = tire is warmer)")
+
+```
+```{r, fig.height=9, fig.width=7}
+l <- ggplot(data = ByDay, aes(x = Date, y = minT))
+l + geom_line() + 
+  geom_hline(yintercept=-12, linetype =2)+
+  facet_grid(Location + ABC ~ Type) + theme_classic()+
+  ggtitle("Minumum temperature per day")
+
+```
+
+
+```{r, below 12}
+#### Below - 12
+OW$Min10 <- ifelse(OW$Value < -12, 1, 0)
+PercMin10 <- summarize(group_by(OW, Location, ABC, Type), Min10 = sum(Min10), N = n(), Perc = round(sum(Min10)/n()*100, 2))
+PercMin10_cast <- dcast(data = PercMin10, Location + ABC ~ Type)
+kable(PercMin10_cast, caption = "Percentage of reads below -12C")
+
+subset(OW, Location == "New Berlin" & ABC == "B" & Type  == "Tire" & Value < -12)
+subset(OW, Location == "NWMAD" & ABC == "C" & Type  == "Tire" & Value < -12)
+
+```
+
+In New Berlin B, there were 3 reads below 12C
+In NWMAD C there was 1 read below 12C. 
+
+
+It does hit -13.5 and -14. 
+
+
+## Tables
+
+```{r}
+library(lubridate)
+OW$week <- week(OW$GMT)
+OW$year <- year(OW$GMT)
+OW$month <- month(OW$GMT)
+
+Tab1 <- summarize(group_by(OW, Location, Type, year, month), minT = min(Value),
+          maxT = max(Value), avgT = round(mean(Value),1), sdT = round(sd(Value),1))
+Tab1$Temps <- paste(Tab1$avgT, " (", Tab1$minT, ", ", Tab1$maxT, ")")
+Tab1_melt <- dcast(Tab1, Location+Type~ year+month, value.var = "Temps")
+kable(Tab1_melt, caption = "Average (min and max) temperatur per month")
+
+#Update
+
+# TAble 2
+OWmelt_D$week <- week(OWmelt_D$Date)
+OWmelt_D$year <- year(OWmelt_D$Date)
+OWmelt_D$month <- month(OWmelt_D$Date)
+Tab2 <- summarize(group_by(OWmelt_D, Location, ABC, year, month), minT = min(Dif),
+          maxT = max(Dif), avgT = round(mean(Dif),1), sdT = round(sd(Dif),1))
+Tab2$Diff <- paste(Tab2$avgT, " (", Tab2$minT, ", ", Tab2$maxT, ")")
+Tab2_melt <- dcast(Tab2, Location+ABC~ year+month, value.var = "Diff")
+kable(Tab2_melt, caption = "Average (min and max) difference per month")
+```
+
+##IGNORE
+
+Wroking with Time Series package in R you can pull all kinds of information. Lets see if it works. 
+
+```{r}
+#plot.ts(OW$Value)
+#plot.ts(log(OW$Value))
+
+#library(TTR)
+#Test <- SMA(OW$Value, n=24)
+#plot.ts(Test)
+#plot(as.ts(OW$Value)) 
+
+#Set1 <- subset(OW, Location == "SCCMAD" & Number == 4 & Type == "Tire")
+#Set1 <- subset(Set1, !is.na(Value))
+#plot(SMA(Set1$Value))
+
+
+#### Exploring "trends"
+
+## Old sckool
+# https://anomaly.io/seasonal-trend-decomposition-in-r/
+#library(forecast)
+#trend_beer = ma(Set1$Value, order = 8, centre = T)
+
+#plot.ts(Set1$Value)
+#lines(trend_beer)
+
+#detrend_beer = Set1$Value / trend_beer
+#plot.ts(detrend_beer)
+
+## using decompose
+#ts <- ts(Set1$Value, frequency = 8*30)
+#ts_decom <- decompose(ts, "multiplicative")
+#plot(ts_decom)
+
+
+#### Autocorrelation
+#acf(Set1$Value) # lag of 8 has max correlation
+#Set1DF <- diff(Set1$Value, differences = 2)
+#plot(Set1DF)
+#Set1DFDF <- diff(Set1DF, lag = 8)
+#plot(Set1DFDF)
+```
+
+
+All nice and well. Lets get back to the questions. 
+
+There are 3 tire stacks at each location. For some reason there aren't matching data for each time frame and tire stack, we lost 12000 observations when trying to match. 
+
+```{r}
+
+```
