@@ -17,7 +17,6 @@ KMS - files created by Katie Milligan Susong
 _###### - MMDDYY date created
 
 
-
 Original data files: Passed on by Brad Tucker and Bieneke Bron--------------------------------------------
 
 HOBOall.csv          : full HOBO monitor data, TIRES ONLY, includes temperature and relative humidity
