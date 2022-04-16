@@ -2,15 +2,6 @@ README
 
 ### R Script files associated with OW albopictus Project
 
-##### Primary author: Katie Milligan Susong (KMS)
-- Pathobiological Sciences-University of Wisconsin Madison
-- Midwest Center of Excellence in Vector-Borne Disease
-- ksusong@wisc.edu
-##### PI: Lyric Bartholomay
-- Pathobiological Sciences-University of Wisconsin Madison
-- Midwest Center of Excellence in Vector-Borne Disease
-- lyric.bartholomay@wisc.edu
-
 ##### Conventions:
 - Script number reflects order of final operations and not creation
 - FUNCTION files are associated by file number
