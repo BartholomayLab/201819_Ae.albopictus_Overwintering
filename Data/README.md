@@ -2,15 +2,6 @@ README
 
 # Data file associated with OW albopictus project 
 
-
-##### Primary author: Katie Milligan Susong (KMS)
-- Pathobiological Sciences-University of Wisconsin Madison
-- Midwest Center of Excellence in Vector-Borne Disease
-- ksusong@wisc.edu
-##### PI: Lyric Bartholomay
-- Pathobiological Sciences-University of Wisconsin Madison
-- Midwest Center of Excellence in Vector-Borne Disease
-- lyric.bartholomay@wisc.edu
 --------------------------------------------------------------------------------------
 
 ##### Conventions:
