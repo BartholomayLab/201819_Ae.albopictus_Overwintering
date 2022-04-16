@@ -18,6 +18,6 @@ Street, Champaign, IL 6182, USA, and 7Corresponding author, e-mail: lbartholomay
 _______________________________________
 Thank you for vistiting the assocaited data repository for the publication listed above.
 
-For clarification, please see the README continaed within each folder of relavent files ans scripts
+For clarification, please see the README contained within each folder of relavent files and scripts
 
 
